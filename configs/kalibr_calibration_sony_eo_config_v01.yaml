@@ -1,0 +1,132 @@
+# ==============================================================================
+# Kalibr Calibration Config: Sony EO Camera (IMX415 sensor + M12 fisheye lens)
+# ==============================================================================
+#
+# SENSOR FACTS (Sony IMX415, confirmed from Sony datasheet):
+#   Sensor model:       Sony IMX415-AAQR (STARVIS, stacked BSI CMOS)
+#   Optical format:     1/2.8" (6.4 mm diagonal)
+#   Active pixels:      3864 (H) x 2176 (V) at full resolution
+#   Pixel size:         1.45 um x 1.45 um
+#   Sensor width:       3864 * 1.45 um = 5.603 mm
+#   Sensor height:      2176 * 1.45 um = 3.155 mm
+#   Shutter type:       ROLLING SHUTTER  <-- see note below
+#   Spectral range:     Visible + NIR (BSI, STARVIS technology)
+#   Max frame rate:     60 fps @ 12-bit / 90 fps @ 10-bit
+#
+# LENS FACTS (M12 / S-mount fisheye, user-stated):
+#   Mount:              M12 (S-mount)
+#   FOV:                ~72 degrees  (user estimate; which angle? -- see note)
+#   Focus:              Permanently fixed to infinity
+#   Lens model/part#:   UNKNOWN -- not provided
+#   Focal length (mm):  UNKNOWN -- check lens body or supplier spec sheet
+#   f/#:                UNKNOWN
+#   Distortion:         UNKNOWN -- must be calibrated
+#
+# NOTE ON "FISHEYE" LABEL vs. 72 DEG FOV:
+#   True fisheye lenses are typically 120-220 deg FOV. At 72 deg, this is more
+#   accurately a wide-angle lens with barrel distortion. The user calls it
+#   "fisheye" which may mean the vendor uses that term loosely.
+#   TWO calibration model choices:
+#     1. pinhole-equidist  -- USED HERE as primary. Handles both true fisheye
+#        and wide-angle barrel distortion gracefully. k1..k4 absorb whatever
+#        distortion is present.
+#     2. pinhole-radtan    -- try as alternative if kalibr residuals are poor
+#        with equidist. Standard choice for non-fisheye wide-angle lenses.
+#   After calibration, compare reprojection errors for both and pick lower error.
+#
+# NOTE ON ROLLING SHUTTER:
+#   The IMX415 is a rolling shutter sensor (rows exposed at different times).
+#   For a fast-moving calibration rig this introduces skew/wobble artifacts.
+#   Mitigation: move the calibration target SLOWLY during bag recording.
+#   If systematic residuals persist, consider kalibr's rolling-shutter models:
+#     pinhole-rs-radtan / pinhole-rs-equidist (require line readout time param).
+#
+# NOTE ON FIXED-INFINITY FOCUS:
+#   Lens is permanently focused at infinity. Place the AprilGrid target at
+#   >= 1.5 m to stay within depth of field. Closer targets will be blurry
+#   and cause poor corner detections.
+#   The Boson's near-focus limit (1.9 m) is the binding constraint when doing
+#   joint IR+EO extrinsic calibration -- both cameras must see the target.
+#
+# FOCAL LENGTH FALLBACK CALCULATION:
+#   f_px = f_mm * image_width_px / sensor_width_mm
+#
+#   This converts the physical focal length into pixel units by multiplying
+#   by the sensor's pixel density (pixels per mm):
+#     pixels_per_mm = image_width_px / sensor_width_mm
+#   Example @ 1920x1080:  pixels_per_mm = 1920 / 5.603 = 342.7 px/mm
+#   So: f_px = f_mm * 342.7
+#
+#   Since we do NOT know f_mm, we derive f_px from the stated FOV instead.
+#   For the equidistant fisheye model:  r_px = f_px * theta  (theta in radians)
+#   Rearranged: f_px = (image_width / 2) / (HFOV_half in radians)
+#
+#   Assuming HFOV = 72 deg (half-angle = 36 deg = 0.6283 rad):
+#
+#   [TODO: CONFIRM OUTPUT RESOLUTION -- f_px scales with it!]
+#   Resolution 1920x1080:  f_px = 960  / 0.6283 = 1528 px  <-- default below
+#   Resolution 3864x2176:  f_px = 1932 / 0.6283 = 3075 px  (full 4K)
+#   Resolution 1280x720:   f_px = 640  / 0.6283 = 1019 px
+#
+#   Cross-check using rectilinear model (if NOT a true fisheye):
+#     f_px = (width/2) / tan(36 deg) = 960 / 0.7265 = 1321 px  [@ 1920x1080]
+#   The ~200 px spread between equidist and rectilinear is expected and normal.
+#   Kalibr will optimize the true value from your calibration data.
+#
+# PRINCIPAL POINT (initial guess, assumes 1920x1080 output):
+#   cx = (1920 - 1) / 2 = 959.5
+#   cy = (1080 - 1) / 2 = 539.5
+#   [Adjust if using a different output resolution]
+#
+# WHAT WE DO NOT YET KNOW (fill in before running kalibr):
+#   [?] output resolution   -- CRITICAL: 3864x2176, 1920x1080, or other?
+#                              f_px and cx/cy both depend on this
+#   [?] exact FOV           -- user says "~72 deg"; HFOV? DFOV? half-angle?
+#                              verify from lens datasheet or supplier
+#   [?] lens model/part#    -- not provided; needed to confirm all specs
+#   [?] focal length (mm)   -- not provided; check lens body or supplier
+#   [?] f/#                 -- not provided
+#   [?] distortion model    -- equidist vs radtan: TBD after first calibration
+#   [?] k1..k4 (equidist)   -- must be calibrated
+#   [?] actual cx, cy       -- assumed center; may vary by several pixels
+#   [?] ROS topic           -- set correct topic for Sony EO stream below
+#   [?] rosbag path         -- set path to calibration bag/mcap below
+#   [?] frame rate          -- confirm fps used when recording
+#   [?] rolling shutter     -- line readout time if using RS calibration model
+#
+# JOINT IR+EO CALIBRATION NOTE (Boson + Sony):
+#   - Both cameras must be time-synchronized in the bag
+#   - Target must be simultaneously visible in BOTH cameras
+#   - Binding minimum distance = 1.9 m (Boson near-focus limit)
+#   - Boson sees LWIR (8-14 um); Sony sees visible. The AprilGrid must produce
+#     detectable tags in BOTH spectral bands at the same time. This requires a
+#     target with BOTH visual (black/white) AND thermal (emissivity or heated)
+#     contrast. A standard printed paper grid alone will NOT work in LWIR.
+# ==============================================================================
+
+board:
+  target_type: 'aprilgrid'   # grid type
+  tagCols: 6                  # number of apriltags in the x direction
+  tagRows: 6                  # number of apriltags in the y direction
+  tagSize: 0.088              # size of apriltag, edge to edge [m]
+  tagSpacing: 0.3             # ratio of space between tags to tagSize
+  # At 1.9 m (Boson near-focus limit), tagSize=0.088 m grid spans ~0.66 m wide.
+  # At 1920x1080 with f_px~1528, this subtends ~532 px (~28% of frame width).
+  # Move the target around during recording to cover corners and edges of frame.
+
+# Focal_length_fallback needs to be in pixels.  Convert FL from mm (f_mm) to
+# pixels (f_px) like this:  f_px = f_mm * image_width_px / sensor_width_mm
+# OR for equidistant fisheye from FOV: f_px = (image_width/2) / (HFOV_half_rad)
+# Example @ 1920x1080, HFOV=72 deg:  960 / 0.6283 = 1528 px
+
+cameras:
+  sony_eo:
+    model: 'pinhole-radtan'
+    # Assumes 1920x1080 output and HFOV=72 deg (equidistant model).
+    # Change to 3075 for full 4K (3864x2176) output.
+    # Change to 1321 to try pinhole-radtan model at 1920x1080.
+    # Change to 1528 to try pinhole-equidist model at 1920x1080.
+    focal_length_fallback: 1321.0
+    source:
+      rosbag_path: 'TODO: /path/to/your/sony_eo_calibration.mcap'
+      topic: 'TODO: /sony/image_raw'   # set correct ROS2 topic for Sony EO

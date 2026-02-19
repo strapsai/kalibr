@@ -1,0 +1,109 @@
+# ==============================================================================
+# Kalibr Calibration Config: FLIR Boson IR Camera
+# Part Number: 20320A050  (base config code; frame rate / grade suffix unknown)
+# Datasheet: 102-2013-40, Rev 340, March 2021
+# ==============================================================================
+#
+# PART NUMBER DECODE (Figure 3, datasheet 102-2013-40 Rev 340):
+#   20   = Product Series: Shuttered (20 = shuttered, 21 = shutterless)
+#   320  = Resolution:     320x256 pixels (QVGA, 12 um pixel pitch)
+#   A    = Lens Coating:   AR / High Durability
+#   0    = Lens Style:     Standard form factor  (NOT 'S' = small form factor)
+#   50   = Lens HFOV:      50 degrees
+#   ???  = Frame rate / grade suffix NOT provided (e.g. -6PAAX = 60Hz, Professional)
+#
+# NOTE ON LENS DISAMBIGUATION (Table 11):
+#   20320 A050:  f/1.00, focal_length=4.3mm, distortion <12%  <-- THIS UNIT
+#   20320 AS50:  f/1.10, focal_length=4.5mm, distortion <14%  <-- different: small form factor
+#   Rev 340 added the AS50 (4.5mm) as the "new" smaller lens. Our unit is the
+#   original A050 with 4.3mm. The '0' vs 'S' in the lens style field is the key.
+#
+# SENSOR FACTS (datasheet Table 1 and Table 11 row: 20320 A050):
+#   Sensor technology:  Uncooled VOx microbolometer
+#   Spectral range:     LWIR, nominally 8 um to 14 um
+#   Array format:       320 x 256 pixels
+#   Pixel size:         12 um
+#   Sensor size:        3.840 mm (W) x 3.072 mm (H)   [= 320*12um x 256*12um]
+#   HFOV:               50.0 degrees  (Table 11)
+#   VFOV:               40.0 degrees  (Table 11)
+#   FOV diagonal:       65.0 degrees  (Table 11)
+#   f/#:                1.00          (Table 11)
+#   Focal length:       4.3 mm        (Table 11, confirmed)
+#   Near-focus dist:    1.9 m (factory focus) / 0.10 m (with user refocus tool)
+#   Avg transmission:   93%           (Table 11)
+#   MTF @ Nyquist:      42%           (on-axis, 20C, Table 11)
+#   Distortion:         < 12% (barrel) (Table 11)
+#   Shutter:            Yes (integral shutter assembly; auto FFC/NUC)
+#   Camera length:      27 mm         (Table 12)
+#   Camera weight:      18 g          (Table 12)
+#   Lens thread:        M18 x 0.5    (Table 12)
+#
+# FOCAL LENGTH FALLBACK CALCULATION:
+#   Formula:  f_px = f_mm * image_width_px / sensor_width_mm
+#   sensor_width_mm = 320 px * 0.012 mm/px = 3.840 mm
+#   f_px = 4.3 * 320 / 3.840 = 358.3 px  --> use 358
+#
+#   Cross-check from HFOV geometry (undistorted pinhole model):
+#     f_px = (image_width/2) / tan(HFOV/2) = 160 / tan(25 deg) = 343 px
+#   The ~15 px spread is expected: FOV-derived f_px is compressed by barrel
+#   distortion; physical-dimension f_px assumes an ideal thin lens.
+#   Kalibr will optimize the true value during calibration.
+#
+# PRINCIPAL POINT (initial guess):
+#   cx = (320 - 1) / 2 = 159.5
+#   cy = (256 - 1) / 2 = 127.5
+#   Kalibr will refine this; optical axis offset is typically a few pixels.
+#
+# DISTORTION MODEL RATIONALE:
+#   pinhole-radtan: standard radial (k1,k2) + tangential (p1,p2) model.
+#   Appropriate here because HFOV=50 deg and distortion <12% (well within
+#   the radtan model's valid range). equidist / fisheye not needed.
+#
+# WHAT WE DO NOT YET KNOW (fill in before running kalibr):
+#   [?] actual f_px         -- will be determined by calibration (~358 starting pt)
+#   [?] k1, k2, p1, p2      -- distortion coefficients; must be calibrated
+#   [?] actual cx, cy       -- assumed center (159.5, 127.5); may vary by a few px
+#   [?] ROS topic name      -- set the correct topic for the Boson IR stream below
+#   [?] rosbag path         -- set the path to your calibration bag/mcap below
+#   [?] frame rate mode     -- 60 Hz ("fast") or 9 Hz ("slow"/export-restricted)?
+#   [?] full part number    -- frame rate + grade suffix (e.g. -6PAAX) not given
+#
+# THERMAL CALIBRATION NOTES:
+#   - Target MUST be >= 1.9 m from camera (factory near-focus limit).
+#     If you use the FLIR focus tool (Section 16.6) to refocus, minimum is 0.10 m.
+#   - Standard printed AprilGrid (paper/cardboard) has near-zero thermal contrast
+#     in LWIR. You need a target with differential emissivity (e.g. matte black
+#     paint vs polished aluminium tape on an aluminium plate) OR a
+#     temperature-controlled (heated/cooled) calibration plate.
+#   - The Boson performs periodic Flat-Field Correction (FFC/NUC) via its internal
+#     shutter. FFC events cause a momentary image freeze (~100 ms). Filter these
+#     frames out of the calibration bag before running kalibr.
+#   - The camera has a thermal time constant of ~8 ms (Table 1). Allow a few
+#     minutes of warm-up for the sensor to reach thermal equilibrium before
+#     recording calibration data.
+#   - 12 um pixel pitch gives moderate sensitivity. Move the target slowly and
+#     smoothly during bag recording to avoid motion blur artifacts.
+# ==============================================================================
+
+board:
+  target_type: 'checkerboard'   # grid type
+  targetCols: 6       # internal corners in X (squares - 1)
+  targetRows: 8       # internal corners in Y (squares - 1)
+  rowSpacingMeters: 0.05   # physical size of ONE square in meters
+  colSpacingMeters: 0.05   # same (if squares are square)
+  # NOTE: At the 1.9 m near-focus limit, a 6x6 grid with tagSize=0.088 m
+  # spans ~0.66 m wide and subtends ~20 deg of the 50 deg HFOV -- reasonable.
+  # If you refocus the lens closer, you can use a smaller target at shorter range.
+  # If you need better image coverage, scale tagSize up proportionally.
+
+# Focal_length_fallback needs to be in pixels.  Convert FL from mm (f_mm) to
+# pixels (f_px) like this:  f_px = f_mm * image_width_px / sensor_width_mm
+# Example for Boson A050:   f_px = 4.3 * 320 / 3.840 = 358.3 px
+
+cameras:
+  boson_ir:
+    model: 'pinhole-radtan'
+    focal_length_fallback: 358.0    # 4.3mm * (320px / 3.840mm) = 358.3 px
+    source:
+      rosbag_path: 'TODO: /path/to/your/boson_ir_calibration.mcap'
+      topic: 'TODO: /boson/image_raw'   # set correct ROS2 topic for Boson IR

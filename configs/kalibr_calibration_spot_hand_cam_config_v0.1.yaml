@@ -1,0 +1,17 @@
+board:
+  target_type: 'aprilgrid' # grid type
+  tagCols: 6               # number of apriltags in the x direction
+  tagRows: 6               # number of apriltags in the y direction
+  tagSize: 0.088           # size of apriltag, edge to edge [m]
+  tagSpacing: 0.3          # ratio of space between tags to tagSize
+
+# Focal_length_fallback needs to be in pixels.  Convert FL from mm (f_mm) to
+# pixels (f_px) like this:  f_px = f_mm * image_width_px / sensor_width_mm
+
+cameras:
+  spot_hand_camera:
+    model: 'pinhole-radtan'
+#    focal_length_fallback: 881.0
+    source:
+      rosbag_path: '/Desktop/chiron-data/kalibr/spot1/spot_rgb_20260217_231506/spot_rgb_20260217_231506_0.mcap'
+      topic: '/spot1/base/spot/camera/hand/image'

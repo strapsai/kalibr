@@ -1,0 +1,27 @@
+# ==============================================================================
+# Kalibr Calibration Config: VIO IR Camera
+# ==============================================================================
+#  14mm focal length
+#  640x512 - width x height 
+#  7.68mm x 6.144mm
+
+board:
+  target_type: 'aprilgrid'   # grid type
+  tagCols: 6                  # number of apriltags in the x direction
+  tagRows: 6                  # number of apriltags in the y direction
+  tagSize: 0.088              # size of apriltag, edge to edge [m]
+  tagSpacing: 0.3             # ratio of space between tags to tagSize
+  # At 1.9 m (Boson near-focus limit), tagSize=0.088 m grid spans ~0.66 m wide.
+  # At 1920x1080 with f_px~1528, this subtends ~532 px (~28% of frame width).
+  # Move the target around during recording to cover corners and edges of frame.
+
+# Focal_length_fallback needs to be in pixels.  Convert FL from mm (f_mm) to
+# pixels (f_px) like this:  f_px = f_mm * image_width_px / sensor_width_mm
+
+cameras:
+  vio_ir:
+    model: 'pinhole-radtan'
+    focal_length_fallback: 1166.0
+    source:
+      rosbag_path: 'TODO: /path/to/your/VIO_IR_calibration.mcap'
+      topic: 'TODO: /VIO_IR/image_raw'   # set correct ROS2 topic for VIO_IR
