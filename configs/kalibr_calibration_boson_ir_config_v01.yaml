@@ -21,7 +21,7 @@
 # SENSOR FACTS (datasheet Table 1 and Table 11 row: 20320 A050):
 #   Sensor technology:  Uncooled VOx microbolometer
 #   Spectral range:     LWIR, nominally 8 um to 14 um
-#   Array format:       320 x 256 pixels
+#   Array format:       640x512 pixels
 #   Pixel size:         12 um
 #   Sensor size:        3.840 mm (W) x 3.072 mm (H)   [= 320*12um x 256*12um]
 #   HFOV:               50.0 degrees  (Table 11)
@@ -103,7 +103,8 @@ board:
 cameras:
   boson_ir:
     model: 'pinhole-radtan'
-    focal_length_fallback: 358.0    # 4.3mm * (320px / 3.840mm) = 358.3 px
+    focal_length_fallback: 716.0    # 4.3mm * (640px / 3.840mm) = 716.6 px
     source:
-      rosbag_path: 'TODO: /path/to/your/boson_ir_calibration.mcap'
-      topic: 'TODO: /boson/image_raw'   # set correct ROS2 topic for Boson IR
+      rosbag_path: '/Desktop/chiron-src/kalibr2/kalibr/data/boson-flir-db3_2_mcap/'
+      topic: '/lion/v019c7308_19ec_78f1_959a_77a9fcad29f4/image/v019c7308_911b_7e0e_b61b_4c492953ec92_thermal_019c7308911b7e0e/compressed'   # set correct ROS2 topic for Boson IR
+      invert_image: true   # Boson BGRA colorized output has inverted luminance (cold=bright); inversion restores correct polarity for checkerboard detection

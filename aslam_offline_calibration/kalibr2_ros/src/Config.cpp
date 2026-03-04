@@ -1,6 +1,7 @@
 #include <stdexcept>
 
 #include <aslam/cameras/GridCalibrationTargetAprilgridv2.hpp>
+#include <aslam/cameras/GridCalibrationTargetCheckerboard.hpp>
 #include <kalibr2_ros/BagReader.hpp>
 #include <kalibr2_ros/Config.hpp>
 #include <yaml-cpp/yaml.h>
@@ -27,6 +28,16 @@ boost::shared_ptr<aslam::cameras::GridCalibrationTargetBase> ParseTarget(const Y
 
     return boost::make_shared<aslam::cameras::GridCalibrationTargetAprilgridv2>(tag_rows, tag_cols, tag_size,
                                                                                 tag_spacing, target_options);
+  } else if (target_type == "checkerboard") {
+    size_t rows = board_config["targetRows"].as<size_t>();
+    size_t cols = board_config["targetCols"].as<size_t>();
+    double row_spacing = board_config["rowSpacingMeters"].as<double>();
+    double col_spacing = board_config["colSpacingMeters"].as<double>();
+
+    // Use default CheckerboardOptions: adaptive threshold, normalize, subpixel
+    // refinement all enabled -- appropriate for both visible and thermal images.
+    return boost::make_shared<aslam::cameras::GridCalibrationTargetCheckerboard>(
+        rows, cols, row_spacing, col_spacing);
   } else {
     throw std::runtime_error("Unsupported target_type: " + target_type);
   }
@@ -51,8 +62,9 @@ CameraConfig ParseCamera(const std::string& camera_name, const YAML::Node& camer
 
   std::string rosbag_path = source["rosbag_path"].as<std::string>();
   std::string topic = source["topic"].as<std::string>();
+  bool invert_image = source["invert_image"] ? source["invert_image"].as<bool>() : false;
 
-  auto reader = BagImageReaderFactory::create(rosbag_path, topic);
+  auto reader = BagImageReaderFactory::create(rosbag_path, topic, invert_image);
 
   return CameraConfig{camera_name, std::move(reader), model, focal_length};
 }

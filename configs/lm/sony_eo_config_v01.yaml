@@ -128,5 +128,5 @@ cameras:
     # Change to 1528 to try pinhole-equidist model at 1920x1080.
     focal_length_fallback: 2659.0
     source:
-      rosbag_path: '/Desktop/chiron-src/kalibr2/kalibr/data/vio-db3_2_mcap/vio-db3_2_mcap_0.mcap'
-      topic: '/lion/v019c7308_19ec_78f1_959a_77a9fcad29f4/image/v019c7308_911b_70f8_a085_e5fd1f1b97e5_visible_019c7308911b70f8/compressed'   # set correct ROS2 topic for Sony EO
+      rosbag_path: 'data/03-03-2026/eo_rosbag_3/eo_rosbag_0.mcap'
+      topic: '/lion/v019cb0a0_c46d_7e3e_b83a_f2cd031785b8/image/v019cb0a0_f00d_70ce_86a4_a8249713ce66_eo/compressed'   # set correct ROS2 topic for Sony EO

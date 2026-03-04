@@ -35,10 +35,20 @@ std::optional<rosbag2_storage::TopicInformation> get_topic_information(
 
 /// Transforms a ROS message to an Image.
 template <typename MessageT>
-Image image_from_message(const MessageT& msg) {
+Image image_from_message(const MessageT& msg, bool invert_image) {
   Image img;
   img.timestamp = aslam::Time(msg.header.stamp.sec, msg.header.stamp.nanosec);
-  img.image = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::MONO8)->image.clone();
+  auto cv_img = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::MONO8);
+  if (invert_image) {
+    // Invert pixel values. Thermal cameras using colorized output (e.g. Boson
+    // BGRA colorized mode) produce a MONO8 image where the BGRA->gray luminance
+    // conversion inverts the thermal intensity: cold=bright, hot=dark. OpenCV's
+    // findChessboardCorners FAST_CHECK gradient pre-screen is polarity-sensitive
+    // and rejects the un-inverted image. Inversion restores the expected
+    // convention. Set invert_image: true in the camera config for such cameras.
+    cv::bitwise_not(cv_img->image, cv_img->image);
+  }
+  img.image = cv_img->image.clone();
   return img;
 }
 
@@ -48,12 +58,12 @@ Image image_from_message(const MessageT& msg) {
 template <typename MessageT>
 class BagImageReader : public ImageReader {
  public:
-  BagImageReader(std::unique_ptr<rosbag2_cpp::Reader> reader, size_t image_count)
-      : reader_(std::move(reader)), image_count_(image_count) {}
+  BagImageReader(std::unique_ptr<rosbag2_cpp::Reader> reader, size_t image_count, bool invert_image)
+      : reader_(std::move(reader)), image_count_(image_count), invert_image_(invert_image) {}
 
   Image ReadNext() override {
     auto msg = reader_->read_next<MessageT>();
-    auto img = image_from_message(msg);
+    auto img = image_from_message(msg, invert_image_);
     if (image_width_ == 0 || image_height_ == 0) {
       image_width_ = img.image.cols;
       image_height_ = img.image.rows;
@@ -68,11 +78,13 @@ class BagImageReader : public ImageReader {
  private:
   std::unique_ptr<rosbag2_cpp::Reader> reader_;
   size_t image_count_;
+  bool invert_image_;
 };
 
 }  // namespace
 
-std::unique_ptr<ImageReader> BagImageReaderFactory::create(const std::string& bag_file_path, const std::string& topic) {
+std::unique_ptr<ImageReader> BagImageReaderFactory::create(const std::string& bag_file_path, const std::string& topic,
+                                                           bool invert_image) {
   auto bag_metadata = get_bag_metadata(bag_file_path);
   auto storage_options = get_storage_options(bag_file_path, bag_metadata);
   // Assuming the serialization format is CDR
@@ -104,10 +116,11 @@ std::unique_ptr<ImageReader> BagImageReaderFactory::create(const std::string& ba
 
   if (it->type == "sensor_msgs/msg/Image") {
     return std::make_unique<BagImageReader<sensor_msgs::msg::Image>>(std::move(reader),
-                                                                     topic_info.value().message_count);
+                                                                     topic_info.value().message_count, invert_image);
   } else if (it->type == "sensor_msgs/msg/CompressedImage") {
     return std::make_unique<BagImageReader<sensor_msgs::msg::CompressedImage>>(std::move(reader),
-                                                                               topic_info.value().message_count);
+                                                                               topic_info.value().message_count,
+                                                                               invert_image);
   } else {
     throw std::runtime_error("Unsupported image type: " + it->type);
   }

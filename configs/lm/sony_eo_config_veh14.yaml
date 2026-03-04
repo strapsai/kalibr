@@ -105,11 +105,11 @@
 # ==============================================================================
 
 board:
-  target_type: 'aprilgrid'   # grid type
-  tagCols: 6                  # number of apriltags in the x direction
-  tagRows: 6                  # number of apriltags in the y direction
-  tagSize: 0.088              # size of apriltag, edge to edge [m]
-  tagSpacing: 0.3             # ratio of space between tags to tagSize
+  target_type: 'checkerboard'   # grid type
+  targetCols: 13       # internal corners in X (squares - 1)
+  targetRows: 8       # internal corners in Y (squares - 1)
+  rowSpacingMeters: 0.04   # physical size of ONE square in meters
+  colSpacingMeters: 0.04   # same (if squares are square)
   # At 1.9 m (Boson near-focus limit), tagSize=0.088 m grid spans ~0.66 m wide.
   # At 1920x1080 with f_px~1528, this subtends ~532 px (~28% of frame width).
   # Move the target around during recording to cover corners and edges of frame.
@@ -126,7 +126,7 @@ cameras:
     # Change to 3075 for full 4K (3864x2176) output.
     # Change to 1321 to try pinhole-radtan model at 1920x1080.
     # Change to 1528 to try pinhole-equidist model at 1920x1080.
-    focal_length_fallback: 2659.0
+    focal_length_fallback: 1321
     source:
-      rosbag_path: '/Desktop/chiron-src/kalibr2/kalibr/data/vio-db3_2_mcap/vio-db3_2_mcap_0.mcap'
-      topic: '/lion/v019c7308_19ec_78f1_959a_77a9fcad29f4/image/v019c7308_911b_70f8_a085_e5fd1f1b97e5_visible_019c7308911b70f8/compressed'   # set correct ROS2 topic for Sony EO
+      rosbag_path: 'data/03-03-2026/veh_14/eo_downward/indago_fourteen_3_3_eo_rosbag/indago_fourteen_3_3_eo_rosbag_0.mcap'
+      topic: '/lion/c07fc000_7f6a_507e_bfac_37606715d014/image/v576295b0_dfc2_527a_a3f6_bbb12c74618a_eo/compressed'   # set correct ROS2 topic for Sony EO

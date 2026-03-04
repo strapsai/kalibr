@@ -20,7 +20,8 @@ namespace ros {
 
 class BagImageReaderFactory {
  public:
-  static std::unique_ptr<ImageReader> create(const std::string& bag_file_path, const std::string& topic);
+  static std::unique_ptr<ImageReader> create(const std::string& bag_file_path, const std::string& topic,
+                                             bool invert_image = false);
 };
 
 }  // namespace ros
