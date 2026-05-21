@@ -1,0 +1,22 @@
+board:
+  target_type: 'aprilgrid'   # grid type
+  tagCols: 6                  # number of apriltags in the x direction
+  tagRows: 6                  # number of apriltags in the y direction
+  tagSize: 0.088              # size of apriltag, edge to edge [m]
+  tagSpacing: 0.3             # ratio of space between tags to tagSize
+  # At 1.9 m (Boson near-focus limit), tagSize=0.088 m grid spans ~0.66 m wide.
+  # At 1920x1080 with f_px~1528, this subtends ~532 px (~28% of frame width).
+  # Move the target around during recording to cover corners and edges of frame.
+
+# Focal_length_fallback needs to be in pixels.  Convert FL from mm (f_mm) to
+# pixels (f_px) like this:  f_px = f_mm * image_width_px / sensor_width_mm
+# OR for equidistant fisheye from FOV: f_px = (image_width/2) / (HFOV_half_rad)
+# Example @ 1920x1080, HFOV=72 deg:  960 / 0.6283 = 1528 px
+
+cameras:
+  sony_eo:
+    model: 'pinhole-radtan'
+    focal_length_fallback: 13780 # f_px (1x, calibrated) × 10 = 1378 × 10
+    source:
+      rosbag_path: '/desktop/triage/spirit/run4_10x/rosbag2_2026_05_19-15_47_44_0.db3'
+      topic: '/vehicle_5/eo/image/compressed'   # set correct ROS2 topic 
